@@ -1,0 +1,31 @@
+# secrets
+.env
+*.token
+
+# data (too large / private)
+data/raw/
+data/cache/
+*.wav
+*.mp3
+
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# submissions (generated prediction artifacts)
+submissions/
+
+# model checkpoints (binary artifacts)
+models/
+*.pt
+*.pth
+*.ckpt
+
+# evaluation and test datasets
+input_data/
+input_data.zip
+Validation/
+validation/
