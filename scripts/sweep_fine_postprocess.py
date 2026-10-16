@@ -186,16 +186,30 @@ def evaluate_configuration(
 
 
 def main():
-    model_path = PROJECT_ROOT / "models" / "baseline_crnn_9426_gold.pt"
+    import argparse
+    parser = argparse.ArgumentParser(description="Finer threshold & post-processing sweep on validation set")
+    parser.add_argument("--model", type=str, default="models/baseline_crnn_9426_gold.pt",
+                        help="Path to model checkpoint")
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu",
+                        help="Device to run inference ('cpu' or 'cuda')")
+    parser.add_argument("--out-jsonl", type=str, default=None,
+                        help="Optional path to save best configuration predictions JSONL")
+    args = parser.parse_args()
+
+    model_path = Path(args.model)
+    if not model_path.is_absolute():
+        model_path = PROJECT_ROOT / model_path
+
     val_dir = PROJECT_ROOT.parent / "Validation" / "validation"
     val_meta_path = val_dir / "validationMetadata.json"
-    device = torch.device("cpu")
+    device = torch.device(args.device)
 
     print("=" * 75)
-    print("VAANI TRACK 1: 9,426-GOLD FINER THRESHOLD & POST-PROCESSING SWEEP")
+    print("VAANI TRACK 1: FINER THRESHOLD & POST-PROCESSING SWEEP")
     print("=" * 75)
     print(f"Checkpoint : {model_path}")
     print(f"Validation : {val_dir}")
+    print(f"Device     : {device}")
 
     # 1. Load model & ground truth
     model = CRNNNoiseDetector(n_mels=64)
@@ -315,6 +329,28 @@ def main():
     else:
         print(f"  - Outcome      : Baseline 0.8325 remains the best configuration (diff: {diff:+.4f})")
     print("=" * 75)
+
+    if args.out_jsonl:
+        out_p = Path(args.out_jsonl)
+        if not out_p.is_absolute():
+            out_p = PROJECT_ROOT / out_p
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        print(f"\nWriting best configuration predictions to {out_p}...")
+        with open(out_p, "w", encoding="utf-8") as fout:
+            for item in cached_probs:
+                pr_events = probs_to_events_post(
+                    item["probs"],
+                    threshold=best["threshold"],
+                    med=best["med"],
+                    hop_length=item["hop_length"],
+                    sr=item["sr"],
+                    duration=item["duration"],
+                    merge_gap=best["merge_gap"],
+                    min_duration=best["min_duration"],
+                )
+                formatted_events = [{"onset": round(on, 3), "offset": round(off, 3)} for on, off in pr_events]
+                fout.write(json.dumps({"clip_id": item["stem"], "events": formatted_events}) + "\n")
+        print(f"Predictions saved successfully ({len(cached_probs)} clips).")
 
 
 if __name__ == "__main__":

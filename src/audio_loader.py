@@ -78,6 +78,8 @@ class AudioLoader:
         self.target_sr = target_sr
 
         load_dotenv()
+        if not os.environ.get("HF_TOKEN"):
+            load_dotenv(Path(__file__).resolve().parent.parent / ".env")
         self.token = os.environ.get("HF_TOKEN")
         if not self.token:
             raise RuntimeError(
