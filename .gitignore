@@ -29,3 +29,4 @@ input_data/
 input_data.zip
 Validation/
 validation/
+!checkpoints/best.pt
